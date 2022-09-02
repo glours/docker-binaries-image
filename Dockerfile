@@ -1,6 +1,6 @@
 #syntax=docker/dockerfile:1.3-labs
 
-FROM alpine AS curl
+FROM --platform=${BUILDPLATFORM} alpine AS curl
 RUN apk add --no-cache \
     curl
 
@@ -33,9 +33,10 @@ RUN <<EOT ash
 EOT
 
 FROM curl AS scan-plugin
+ARG TARGETARCH
 ARG SCAN_VERSION=v0.19.0
 RUN <<EOT ash
-    curl -fLo /docker-scan https://github.com/docker/scan-cli-plugin/releases/download/${SCAN_VERSION}/docker-scan_linux_amd64
+    curl -fLo /docker-scan https://github.com/docker/scan-cli-plugin/releases/download/${SCAN_VERSION}/docker-scan_linux_${TARGETARCH}
     chmod +x /docker-scan
 EOT
 
@@ -44,7 +45,7 @@ COPY --from=cli            /docker         /usr/local/bin/com.docker.cli
 COPY --from=compose-cli    /docker         /usr/local/bin/docker
 COPY --from=compose-cli    /docker-compose /usr/lib/docker/cli-plugins/docker-compose
 COPY --from=buildx-plugin  /docker-buildx  /usr/lib/docker/cli-plugins/docker-buildx
-COPY --from=scan-plugin     /docker-scan    /usr/lib/docker/cli-plugins/docker-scan
+COPY --from=scan-plugin    /docker-scan    /usr/lib/docker/cli-plugins/docker-scan
 
 FROM common AS docker-amd64
 
